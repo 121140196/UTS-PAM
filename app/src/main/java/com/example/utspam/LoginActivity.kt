@@ -34,11 +34,11 @@ class LoginActivity : AppCompatActivity() {
                         val intent = Intent(this, MainActivity::class.java)
                         startActivity(intent)
                     } else {
-                        Toast.makeText(this, "Kombinasi email dan password salah!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, "Email atau password salah!", Toast.LENGTH_SHORT).show()
                     }
                 }
             } else {
-                Toast.makeText(this, "Harap memasukkan email dan password!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Masukkan email dan password!", Toast.LENGTH_SHORT).show()
             }
         }
     }
