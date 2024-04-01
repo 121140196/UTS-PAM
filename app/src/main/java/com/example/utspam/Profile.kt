@@ -1,80 +1,70 @@
-package com.example.utspam
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.Typeface
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.Button
-import android.widget.TextView
-import androidx.fragment.app.Fragment
+import android.widget.ImageView
+import androidx.appcompat.app.AppCompatActivity
+import com.example.utspam.LoginActivity
+import com.example.utspam.databinding.ActivityProfileBinding
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 
+class ProfileActivity : AppCompatActivity() {
 
-class Profile : Fragment() {
+    private lateinit var binding: ActivityProfileBinding
+    private lateinit var auth: FirebaseAuth
 
-    private lateinit var firebaseAuth: FirebaseAuth
-    private lateinit var db: FirebaseFirestore
-    private lateinit var nameTextView: TextView
-    private lateinit var emailTextView: TextView
-    private lateinit var usernameTextView: TextView
-    private lateinit var buttonLogout: Button
-    private lateinit var imageProfile: TextView
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityProfileBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        val view = inflater.inflate(R.layout.fragment_profile, container, false)
+        auth = FirebaseAuth.getInstance()
 
-        db = FirebaseFirestore.getInstance()
-        firebaseAuth = FirebaseAuth.getInstance()
+        val currentUser = auth.currentUser
+        currentUser?.let {
+            val username = it.displayName ?: "Unknown"
+            val email = it.email ?: "Unknown"
+            val githubUsername = "Your GitHub Username"
 
-        buttonLogout = view.findViewById(R.id.buttonLogout)
-        imageProfile = view.findViewById(R.id.imageProfile)
-        nameTextView = view.findViewById(R.id.nameTextView)
-        usernameTextView = view.findViewById(R.id.usernameTextView)
-        emailTextView = view.findViewById(R.id.emailTextView)
-
-
-        buttonLogout.setOnClickListener {
-            firebaseAuth.signOut()
-            val intent = Intent(requireContext(), LoginActivity::class.java)
-            startActivity(intent)
-            requireActivity().finish()
+            binding.textViewUsername.text = username
+            binding.textViewEmail.text = email
+            binding.textViewGithubUsername.text = githubUsername
+            val placeholderImage = createInitialsImage(username)
+            binding.imageViewProfile.setImageBitmap(placeholderImage)
         }
-
-        val currentUser = firebaseAuth.currentUser
-        currentUser?.uid?.let { userId ->
-            db.collection("users").document(userId)
-                .get()
-                .addOnSuccessListener { document ->
-                    if (document.exists()) {
-                        val name = document.getString("name") ?: "Default Name"
-                        val email = document.getString("email") ?: "Default Email"
-                        val username = document.getString("username") ?: "Default Username"
-
-                        nameTextView.text = name
-                        emailTextView.text = email
-                        usernameTextView.text = username
-
-                        val nameParts = name.split(" ")
-                        val initials = if (nameParts.isNotEmpty()) {
-                            nameParts[0].firstOrNull()?.toString() ?: ""
-                        } else {
-                            ""
-                        }
-                        imageProfile.text = initials
-
-                    } else {
-                        nameTextView.text = "Data not found"
-                    }
-                }
-                .addOnFailureListener { exception ->
-                    nameTextView.text = "Error: ${exception.message}"
-                }
+        binding.logoutButton.setOnClickListener {
+            logoutUser()
         }
-        return view
+    }
+
+    private fun logoutUser() {
+        auth.signOut()
+        startActivity(Intent(this, LoginActivity::class.java))
+        finish()
+    }
+
+    private fun createInitialsImage(name: String): Bitmap {
+        val width = 100
+        val height = 100
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint().apply {
+            color = Color.BLUE
+            isAntiAlias = true
+            textSize = 40f
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        val initials = name.split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("")
+        val textBounds = Rect()
+        paint.getTextBounds(initials, 0, initials.length, textBounds)
+        val textX = (width - textBounds.width()) / 2f
+        val textY = (height + textBounds.height()) / 2f
+        canvas.drawText(initials, textX, textY, paint)
+        return bitmap
     }
 }
